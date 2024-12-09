@@ -1,0 +1,16 @@
+{
+    "valorant_sensitivity": 0.15,
+
+    "map_distance_multiplier": 1,
+    
+    "ascent_multiplier": 1.07,
+    "bind_multiplier": 1.2625,
+    "breeze_multiplier": 1.03,
+    "fracture_multiplier": 0.96,
+    "haven_multiplier": 1.00,
+    "icebox_multiplier": 1.03,
+    "lotus_multiplier": 1.035,
+    "pearl_multiplier": 0.96,
+    "split_multiplier": 0.958,
+    "sunset_multiplier": 0.964
+}
