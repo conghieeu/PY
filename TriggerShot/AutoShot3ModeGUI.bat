@@ -1,0 +1,1 @@
+python AutoShot3ModeGUI.py
