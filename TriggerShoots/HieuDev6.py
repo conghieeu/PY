@@ -24,7 +24,7 @@ current_mode = Mode.BanScope
 key_change_mode = "t"
 key_pause = "`"
 key_exit = "k"
-pressKeyShot = "m"
+pressKeyShot = "`"
 shoot_speed = 0.1
 
 

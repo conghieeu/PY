@@ -1,0 +1,9 @@
+bắt đầu chạy thì hiển thị ra giao diện chọn nhân vật, chọn map
+
+có bảng setting để set sensitivity, DPI
+
+có bảng setting hotkey
+
+chọn map và nhân vật xong thì khi chơi sẽ có hotkey mở bảng chọn kỹ năng hoạt nhấn hotkey để chọn kỹ năng
+
+

@@ -1,0 +1,10 @@
+[Settings]
+hero_ability = sova_arrow
+map = haven
+valorant_sens = 0.15
+DPI = 1600
+key_lineup = `
+key_skill = f2
+key_option = f3
+key_open_menu = f4
+

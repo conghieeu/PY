@@ -5,65 +5,35 @@ import time
 import tkinter as tk
 from pynput import keyboard
 import ctypes
-import json
-import math
-
+from VatLy import calculate_throw_distance
 
 # Các biến lưu trữ trạng thái
 tracking = False
 last_position = None
 current_x = 0
 current_y = 0
-key_toggle = "k"  # Phím để bật/tắt theo dõi chuột
+key_toggle = "`"  # Phím để bật/tắt theo dõi chuột
 angle_deg = 0
 distance = 0
 
-settings_file = 'settings.json'
-def remove_comments(json_text):
-    lines = json_text.split('\n')
-    cleaned_lines = [line for line in lines if not line.lstrip().startswith('//')]
-    return '\n'.join(cleaned_lines)
+# personal_multiplier
+personal_multi = 1
 
-with open(settings_file, 'r') as file:
-    try:
-        json_text = remove_comments(file.read())
-        data = json.loads(json_text)
-        val_sensitivity = data['valorant_sensitivity']
-        player_x, player_y = data['player_coords']
-        
-        personal_multi = data['map_distance_multiplier']
-        
-        ascent_multi = data['ascent_multiplier']
-        bind_multi = data['bind_multiplier']
-        breeze_multi = data['breeze_multiplier']
-        fracture_multi = data['fracture_multiplier']
-        haven_multi = data['haven_multiplier']
-        icebox_multi = data['icebox_multiplier']
-        lotus_multi = data['lotus_multiplier']
-        pearl_multi = data['pearl_multiplier']
-        split_multi = data['split_multiplier']
-        sunset_multi = data['sunset_multiplier']
-        
-        
-        unplanted_rgb = data['unplanted_spike_rgb']
-        planted_rgb = data['planted_spike_rgb']
-        tolerance = data['tolerance']
-    
-    except Exception as e:
-        val_sensitivity = 0.4
-        player_x, player_y = 206, 227
-        personal_multi = 1
+# dpi and sensitivity
+val_sensitivity = 0.15
+val_DPI = 1600
 
-        ascent_multi = 1.07
-        bind_multi = 1.27
-        breeze_multi = 1.03
-        fracture_multi = 0.96
-        haven_multi = 1
-        icebox_multi = 1.03
-        lotus_multi = 1.035
-        pearl_multi = 0.96
-        split_multi = 0.958
-        sunset_multi = 0.964
+# map_multiplier
+ascent_multi = 1.07
+bind_multi = 1.27
+breeze_multi = 1.03
+fracture_multi = 0.96
+haven_multi = 1
+icebox_multi = 1.03
+lotus_multi = 1.035
+pearl_multi = 0.96
+split_multi = 0.958
+sunset_multi = 0.964
 
 while True:
     choice = input('''Select agent:
@@ -108,40 +78,24 @@ Select map:
         }[choice] * personal_multi
         break
 
-# Đọc file JSON để lấy thông số tỷ lệ chuyển đổi
-def load_map_config(filename=settings_file):
-    with open(filename, "r") as file:
-        map_config = json.load(file)
-    return map_config
-
-
-def calculate_throw_distance(angle_deg):
-    v0 = 20  # vận tốc ban đầu (m/s) (21m/s, 27.1m/s)
-    g = 9.8     # gia tốc trọng trường (m/s^2) (9.8m/s^2)
-
-    # Chuyển góc từ độ sang radian
-    angle_rad = math.radians(angle_deg)
-
-    # Tính tầm xa (R)
-    distance = (v0**2 * math.sin(2 * angle_rad)) / g
-
-    return distance
+print('\nSELECTED AGENT:', agent)
 
 
 def calculate_angle(y):
-    angle_deg = 0
-    if -535 <= y < -267:
-        angle_deg = 270 + (90 / 268) * (y + 535)  # Tính góc từ 270 đến 360
-    elif -267 <= y <= 0:
-        angle_deg = (90 / 267) * (y + 267)  # Tính góc từ 0 đến 90
-    return angle_deg
+    global val_DPI, val_sensitivity
+    
+    dpi_default = 1600
+    sense_default = 0.15
+    sense_default_dpi = dpi_default * sense_default
+    angle_change_per_unit_default = 90 / 267
 
+    angle_change_per_unit = (angle_change_per_unit_default * val_DPI * val_sensitivity) / sense_default_dpi
 
-# Đọc file JSON để lấy thông số tỷ lệ chuyển đổi
-def load_map_config(filename=settings_file):
-    with open(filename, "r") as file:
-        map_config = json.load(file)
-    return map_config
+    angle_change_per_unit *= y
+
+    angle = 90 + angle_change_per_unit 
+
+    return angle
 
 
 def convert_distance_to_pixels(map_distance_multiplier = 1): 
@@ -199,9 +153,7 @@ def create_gui():
         root.configure(bg="green" if tracking else "red")
         label.configure(bg="green" if tracking else "red")
         """Cập nhật tọa độ trên giao diện."""
-        label.configure(
-            text=f"X: {current_x} | Y: {current_y} | a: {angle_deg:.1f} | d: {distance:.1f}"
-        )
+        label.configure(text=f"X: {current_x} | Y: {current_y} | a: {angle_deg:.2f} | d: {distance:.2f}")
         root.after(100, update_gui)  # Cập nhật mỗi 100ms
 
     update_gui()  # Bắt đầu vòng lặp cập nhật
@@ -265,21 +217,15 @@ def conversion_angle():
     global current_y, angle_deg
     while True:
         angle_deg = calculate_angle(current_y)
-        # print(f"y = {current_y} -> a = {angle_deg}")
-        time.sleep(0.1)
+        time.sleep(0.01)
 
 
 def conversion_distance():
     pyautogui.FAILSAFE = False
     global current_y, distance
     while True:
-        distance = calculate_throw_distance(angle_deg)
-        # print(f"a = {angle_deg} -> d = {distance}")
-        time.sleep(0.1)
-
-
-
-
+        distance = calculate_throw_distance(angle_deg) * map_multi
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
