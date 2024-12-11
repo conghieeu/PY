@@ -1,0 +1,41 @@
+import math
+
+# Hệ số của phương trình hyperbol
+A = 20964.660917624606
+B = -4920.30304538922
+C = -11999.601715847226
+D = -1470186.3222519406
+E = 2153884.7041488164
+F = -37992461.93821514
+
+def find_y_from_x(x_value):
+    # Hệ số của phương trình bậc hai
+    a = C
+    b = B * x_value + E
+    c = A * x_value**2 + D * x_value + F
+
+    # Tính delta
+    delta = b**2 - 4 * a * c
+
+    if delta < 0:
+        return None  # Không có nghiệm thực
+
+    # Tính nghiệm y
+    y1 = (-b + math.sqrt(delta)) / (2 * a)
+    y2 = (-b - math.sqrt(delta)) / (2 * a)
+
+    # Chỉ trả về các nghiệm nhỏ hơn 60
+    results = [y for y in [y1, y2] if y < 60]
+
+    return results if results else None
+
+# Nhập giá trị x
+x_input = float(input("Nhập giá trị x: "))
+
+# Tìm giá trị y
+result = find_y_from_x(x_input)
+
+if result:
+    print(f"Nghiệm y dưới 60: {result}")
+else:
+    print("Không có nghiệm dưới 60 cho giá trị x đã nhập.")

@@ -5,7 +5,7 @@ import time
 import tkinter as tk
 from pynput import keyboard
 import ctypes
-from VatLy import calculate_throw_distance
+from calculations import find_distance
 
 # Các biến lưu trữ trạng thái
 tracking = False
@@ -24,28 +24,31 @@ val_sensitivity = 0.15
 val_DPI = 1600
 
 # map_multiplier
-ascent_multi = 1.07
-bind_multi = 1.27
-breeze_multi = 1.03
-fracture_multi = 0.96
-haven_multi = 1
-icebox_multi = 1.03
-lotus_multi = 1.035
-pearl_multi = 0.96
-split_multi = 0.958
-sunset_multi = 0.964
+ascent_multi = 1.023 # 1.023
+bind_multi = 0.855 # 0.855
+breeze_multi = 1.028 # 1.028
+fracture_multi = 1.114 # 1.114
+haven_multi = 1.082 # 1.082
+icebox_multi = 1.069 # 1.069
+lotus_multi = 1.034 # 1.034
+pearl_multi = 1.136 # 1.136
+split_multi = 1.133 # 1.133
+sunset_multi = 1.121 # 1.121
+abyss_multi = 1.16 # 1.16
 
 while True:
     choice = input('''Select agent:
-1. Brimstone
-2. Viper
-3. KAY/O
+1. KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT
+2. VIPER_BRIMSTONE_STAGE_ORBIT
+3. CYPHER_ORBIT
+4. SOVA_ORBIT
 ''').strip()
-    if choice in ('1', '2', '3'):
+    if choice in ('1', '2', '3', '4'):
         agent = {
-            '1': 'Brimstone',
-            '2': 'Viper',
-            '3': 'KAY/O',
+            '1': 'KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT',
+            '2': 'VIPER_BRIMSTONE_STAGE_ORBIT',
+            '3': 'CYPHER_ORBIT',
+            '4': 'SOVA_ORBIT'
         }[choice]
         break
 
@@ -62,8 +65,9 @@ Select map:
 8. Pearl
 9. Split
 10. Sunset
+11. Abyss
 ''').strip()
-    if choice in (str(x) for x in range(1,11)):
+    if choice in (str(x) for x in range(1,12)):
         map_multi = {
             '1': ascent_multi,
             '2': bind_multi,
@@ -74,13 +78,14 @@ Select map:
             '7': lotus_multi,
             '8': pearl_multi,
             '9': split_multi,
-            '10': sunset_multi
+            '10': sunset_multi,
+            '11': abyss_multi
         }[choice] * personal_multi
         break
 
-print('\nSELECTED AGENT:', agent)
+print('\nSELECTED AGENT:', agent, "\nSELECTED MAP:", map_multi)
 
-
+# tìm góc a tương ứng với vị trí chuột
 def calculate_angle(y):
     global val_DPI, val_sensitivity
     
@@ -98,10 +103,10 @@ def calculate_angle(y):
     return angle
 
 
-def convert_distance_to_pixels(map_distance_multiplier = 1): 
+def convert_distance_to_pixels(): 
     global distance
     conversion_rate = 100 / 45  # 100 pixel tương ứng với 45m
-    pixels = distance * conversion_rate * map_distance_multiplier
+    pixels = distance * conversion_rate
     return round(pixels)
 
 
@@ -117,7 +122,7 @@ def gui_hien_thi_diem_roi():
     # tạo hàm đểm lun cập nhập vị trí và nếu tracking = False thì ẩn giao diện 
     def update_gui():
         if tracking:
-            y_str = str(268 - convert_distance_to_pixels(1))
+            y_str = str(268 - convert_distance_to_pixels())
             root.geometry("8x8+245+" + y_str)
         else:
             root.geometry("0x0+0+0")
@@ -138,6 +143,8 @@ def create_gui():
     root.attributes("-topmost", True)  # Luôn nằm trên cùng
     root.attributes("-alpha", 0.4)  # Độ trong suốt
     root.configure(bg="green")
+    # không cho chuột click vào cửa sổ
+    root.attributes("-disabled", True)
 
     # Tạo nhãn để hiển thị tọa độ
     label = tk.Label(
@@ -153,7 +160,7 @@ def create_gui():
         root.configure(bg="green" if tracking else "red")
         label.configure(bg="green" if tracking else "red")
         """Cập nhật tọa độ trên giao diện."""
-        label.configure(text=f"X: {current_x} | Y: {current_y} | a: {angle_deg:.2f} | d: {distance:.2f}")
+        label.configure(text=f"X: {current_x} | Y: {current_y} | a: {round(angle_deg)} | d: {distance:.3f}")
         root.after(100, update_gui)  # Cập nhật mỗi 100ms
 
     update_gui()  # Bắt đầu vòng lặp cập nhật
@@ -204,16 +211,8 @@ def toggle_tracking():
         current_y = 0
 
 
-def on_press(key):
-    """Lắng nghe sự kiện bàn phím."""
-    try:
-        if key.char == key_toggle:
-            toggle_tracking()
-    except AttributeError:
-        pass
-
-
 def conversion_angle():
+    pyautogui.FAILSAFE = False
     global current_y, angle_deg
     while True:
         angle_deg = calculate_angle(current_y)
@@ -224,8 +223,23 @@ def conversion_distance():
     pyautogui.FAILSAFE = False
     global current_y, distance
     while True:
-        distance = calculate_throw_distance(angle_deg) * map_multi
+        distance = find_distance(angle_deg, agent) * map_multi
         time.sleep(0.01)
+
+# khi nhấn mủi tên lên thì tăng map_multiplier lên 0.001 nếu nhấn mũi tên xuống thì giảm map_multiplier đi 0.001 in kết quả
+def on_press(key):
+    global map_multi
+    try:
+        if hasattr(key, 'char') and key.char == key_toggle:
+            toggle_tracking()
+        elif key == keyboard.Key.up:
+            map_multi += 0.001
+            print('Map multiplier:', map_multi)
+        elif key == keyboard.Key.down:
+            map_multi -= 0.001
+            print('Map multiplier:', map_multi)
+    except AttributeError:
+        pass
 
 
 if __name__ == "__main__":

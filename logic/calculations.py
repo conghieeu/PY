@@ -1,81 +1,156 @@
-"""
-Code này rất khó hiểu, và tôi không hiểu nó nữa! Tôi hiểu nó khi code nó, và nó hoạt động, vì vậy tôi sẽ không làm thay đổi nó.
-"""
-
+import matplotlib.pyplot as plt 
 import math
+import numpy as np
+from scipy.signal import savgol_filter
+from scipy.interpolate import CubicSpline
 
-def calculate_prediction(angle, k, m):
+# kết quả kiểm thử của viper chiêu ném smoke
+data = {
+    "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT": {
+        "a_array": [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35 , 40, 45, 50, 60, 65, 70, 80, 90],
+        "d_array": [0  , 1  , 2  , 2  , 2  , 3  , 4  , 6  ,  10, 20,28.3,37, 42,43.5, 44, 44, 42, 36, 31, 26, 14,  0]
+    },
+    "VIPER_BRIMSTONE_STAGE_ORBIT": {
+        "a_array": [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35, 40, 45, 50, 60, 70, 80, 90],
+        "d_array": [0  , 1  , 1.5, 1.7, 2  , 3  , 4  , 7  ,  13, 30, 48, 63,74.5,77, 77,76.5,73, 62, 45, 25,  0]
+    },
+    "CYPHER_ORBIT": {
+        "a_array": [-90,  -50,  -20, -10,  0, 10, 20, 30, 35  ,   40, 50, 60, 70, 80, 90],
+        "d_array": [1  ,  2  ,  5  ,   8, 13, 18, 22, 24, 24.4, 24.2, 23, 20, 14, 7 ,  0]
+    },
+    "SOVA_ORBIT": {
+        "Orbit_1": {
+            "a_array": [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35, 40, 50, 60, 70, 80, 90],
+            "d_array": [0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  ,  00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,  0]
+        },
+        "Orbit_2": {
+            "a_array": [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35, 40, 50, 60, 70, 80, 90],
+            "d_array": [0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  ,  00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,  0]
+        },
+        "Orbit_3": {
+            "a_array": [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35, 40, 50, 60, 70, 80, 90],
+            "d_array": [0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  ,  00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,  0]
+        },
+    },
+}
+
+# với đầu vào điểm A (x1,y1) và B (x2,y2) tính hệ số của đường thẳng AB
+def calculate_line_coefficients(x1, y1, x2, y2):
     """
-    Hàm này tính toán khoảng cách dự đoán của một quỹ đạo parabol.
-
-    Đối số:
-        angle (int): góc của quỹ đạo parabol.
-        k (float): hằng số của quỹ đạo parabol.
-        m (float): hằng số của quỹ đạo parabol.
-
-    Trả về:
-        float: Dự đoán khoảng cách của quỹ đạo parabol.
+    Tính hệ số của đường thẳng AB.
+    
+    Args:
+        x1, y1 (float): Tọa độ điểm A.
+        x2, y2 (float): Tọa độ điểm B.
+    
+    Returns:
+        float, float, float: Hệ số a, b, c của phương trình đường thẳng ax + by + c = 0.
     """
-    if m - angle**2 < 0:
-        return float("inf")
-    return k * angle * math.sqrt(m - angle**2)
+    a = y2 - y1
+    b = x1 - x2
+    c = x2 * y1 - x1 * y2
+    return a, b, c
 
-class Parabola:
-    def __init__(self, constants: list[dict[int, list]]):
-        """
-        Lớp này đại diện cho một quỹ đạo parabol.
 
-        Đối số:
-            constants (list[dict[int, list]]): Danh sách các từ điển chứa các hằng số cho các khoảng cách khác nhau.
-                Các khóa biểu thị khoảng cách tối đa cho mỗi khoảng, và các giá trị là các danh sách
-                chứa các hằng số tương ứng cho quỹ đạo parabol trong khoảng đó.
-                Định dạng danh sách là [k, m, max_angle].
-        """
-        self.constants = constants
-        self.m = 0
-        self.k = 0
-        self.min_angle = 0
-        self.max_angle = 0
-        self.max_distance = 0
+def find_y_for_x(x, a, b, c):
+    """
+    Tìm giá trị y tương ứng với x trên đường thẳng ax + by + c = 0.
+    
+    Args:
+        x (float): Giá trị x.
+        a, b, c (float): Hệ số của phương trình đường thẳng.
+    
+    Returns:
+        float: Giá trị y tương ứng với x.
+    """
+    if b == 0:
+        raise ValueError("Phương trình đường thẳng không hợp lệ.")
+    return (-a * x - c) / b
 
-    def update_variables(self, distance, constants_index=0):
-        """
-        Phương thức cập nhật các biến của quỹ đạo parabol dựa trên khoảng cách mong muốn.
 
-        Đối số:
-            distance (int): Khoảng cách mong muốn cho quỹ đạo parabol.
-            constants_index (int): Chỉ số của các hằng số trong self.constants để tham chiếu. Ví dụ, khi xử lý nhân vật "Sova," nó có thể có hai bộ hằng số cho parabol đầy đủ và không đầy đủ, vì vậy bạn có thể sử dụng constants_index để chọn giữa chúng.
-        """
-        constants = self.constants[constants_index]
-        previous_min_angle = 0
-        # Lấy khoảng cách tối đa bằng cách tìm khóa lớn nhất
-        self.max_distance = max(constants.keys())
-        for i in constants.keys():
-            # Nếu độ dài của danh sách cho khoảng cách là một, nó phải là khoảng cách nhỏ nhất. như {5: [77]}
-            if len(constants[i]) == 1:
-                if i >= distance:
-                    # Khoảng cách nhỏ nhất có sẵn
-                    self.m = constants[i][0]
-                    self.k = constants[i][0]
-                    break
-                continue
-            if distance <= i:
-                self.k = constants[i][0]
-                self.m = constants[i][1]
-                self.max_angle = constants[i][2]
-                self.min_angle = previous_min_angle
-                break
+# viết hàm tìm 2 số tương ứng đúng thứ tự tăng dần trong mảng a và d
+def find_two_numbers_in_arrays(a, d, angle):
+    """
+    Tìm 2 số trong mảng a và d sao cho thứ tự tăng dần.
+    
+    Args:
+        a (list): Mảng a.
+        d (list): Mảng d.
+        n (int): Số cần tìm 2 số giữa.
+    
+    Returns:
+        tuple: 2 số giữa.
+    """
+    for i in range(len(a) - 1):
+        if a[i] <= angle <= a[i + 1]:
+            return a[i], d[i], a[i + 1], d[i + 1]
+    
+    return find_two_numbers_in_arrays(a, d, -90)
 
-            previous_min_angle = constants[i][2]
- 
 
-def test_calculate_prediction():
-    angles = [0, 15, 30, 45, 60, 75, 90]
-    k = 0.000245
-    m = 556800
-    for angle in angles:
-        result = calculate_prediction(angle, k, m)
-        print(f"Angle: {angle}, Prediction: {result}")
+def find_distance(angle, nameData = "VIPER_BRIMSTONE_STAGE_ORBIT"):
+    """
+    Tìm 2 số trong mảng a và d sao cho thứ tự tăng dần.
+    
+    Returns:
+        tuple: 2 số giữa.
+    """
+    a_array = data[nameData]["a_array"]
+    d_array = data[nameData]["d_array"]
+    x1, y1, x2, y2 = find_two_numbers_in_arrays(a_array, d_array, angle)
+    d = find_y_for_x(angle, *calculate_line_coefficients(x1, y1, x2, y2))
+    return d
 
-if __name__ == "__main__":
-    test_calculate_prediction()
+print(find_distance(40))
+
+
+# Vẽ đồ thị
+def plot_graph(str_name_orbit):
+    angles = data[str_name_orbit]["a_array"]
+    distances = data[str_name_orbit]["d_array"]
+    plt.figure(figsize=(10, 6))
+    plt.plot(angles, distances, 'o-', label="Dữ liệu thực nghiệm")
+    plt.xlabel("Góc (độ)")
+    plt.ylabel("Khoảng cách (m)")
+    plt.title("So sánh dữ liệu thực nghiệm và dự đoán")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+# plot_graph("KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT")
+
+def plot_grapth_smooth(str_name_orbit):
+    a_array = [-90, -80, -70, -60, -50, -40, -30, -20, -10,  0, 10, 20, 30, 35 , 40, 45, 50, 60, 65, 70, 80, 90]
+    d_array = [0  , 1  , 2  , 2  , 2  , 3  , 4  , 6  ,  10, 20,28.3,37, 42,43.5, 44, 44, 42, 36, 31, 26, 14,  0]
+
+    a_array_ot = [-90, -70, -30, -20, -10, 10 , 30, 35  ,  50, 60, 70, 90]
+    d_array_ot = [0  , 2  , 4  , 6  ,  10, 29 , 42, 43.5,  42, 36, 26,  0]
+
+    # Sử dụng nội suy Spline
+    cs = CubicSpline(a_array_ot, d_array_ot)
+
+    # Tạo thêm dữ liệu
+    a_interp = np.linspace(min(a_array_ot), max(a_array_ot), 500)  # Nhiều điểm hơn
+    d_interp = cs(a_interp)
+
+    # Tìm chỉ số của giá trị gần với 19
+    a = 19
+    index = np.argmin(np.abs(a_interp - a))
+
+    # Lấy giá trị tương ứng từ d_interp
+    d_at_index = d_interp[index]
+    print(d_at_index)
+
+    # Vẽ đồ thị
+    plt.figure(figsize=(10, 6))
+    plt.plot(a_array, d_array, 'o', label='Dữ liệu ban đầu')
+    plt.plot(a_array_ot, d_array_ot, 'o', label='Dữ liệu ban sau khi lọc')
+    plt.plot(a_interp, d_interp, '-', label='Nội suy Spline')
+    plt.title("Nội suy Spline để làm mượt đường cong")
+    plt.xlabel("a_array")
+    plt.ylabel("d_array")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+plot_grapth_smooth("KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT")
