@@ -5,7 +5,7 @@ import time
 import tkinter as tk
 from pynput import keyboard
 import ctypes
-from calculations import find_distance
+from calculations import find_distance, find_distance_smooth
 
 # Các biến lưu trữ trạng thái
 tracking = False
@@ -15,9 +15,6 @@ current_y = 0
 key_toggle = "`"  # Phím để bật/tắt theo dõi chuột
 angle_deg = 0
 distance = 0
-
-# personal_multiplier
-personal_multi = 1
 
 # dpi and sensitivity
 val_sensitivity = 0.15
@@ -36,6 +33,9 @@ split_multi = 1.133 # 1.133
 sunset_multi = 1.121 # 1.121
 abyss_multi = 1.16 # 1.16
 
+# map name
+map_name = "none"
+
 while True:
     choice = input('''Select agent:
 1. KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT
@@ -43,12 +43,29 @@ while True:
 3. CYPHER_ORBIT
 4. SOVA_ORBIT
 ''').strip()
-    if choice in ('1', '2', '3', '4'):
-        agent = {
+    if choice in ('1', '2', '3', '4', '5'):
+        orbit_agent = {
             '1': 'KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT',
             '2': 'VIPER_BRIMSTONE_STAGE_ORBIT',
             '3': 'CYPHER_ORBIT',
+            '4': 'KAYO_KNIFE_ORBIT',
             '4': 'SOVA_ORBIT'
+        }[choice]
+        break
+
+sova_orbit_agent = "None"
+while orbit_agent == 'SOVA_ORBIT':
+    choice = input('''Select sova orbit:
+1. Orbit_1
+2. Orbit_2
+3. Orbit_3
+''').strip()
+    if choice in ('1', '2', '3', '4'):
+        sova_orbit_agent = {
+            '1': 'Orbit_1',
+            '2': 'Orbit_2',
+            '3': 'Orbit_3',
+            '4': 'Orbit_4'
         }[choice]
         break
 
@@ -68,22 +85,22 @@ Select map:
 11. Abyss
 ''').strip()
     if choice in (str(x) for x in range(1,12)):
-        map_multi = {
-            '1': ascent_multi,
-            '2': bind_multi,
-            '3': breeze_multi,
-            '4': fracture_multi,
-            '5': haven_multi,
-            '6': icebox_multi,
-            '7': lotus_multi,
-            '8': pearl_multi,
-            '9': split_multi,
-            '10': sunset_multi,
-            '11': abyss_multi
-        }[choice] * personal_multi
+        map_multi, map_name = {
+            '1': (ascent_multi, "Ascent"),
+            '2': (bind_multi, "Bind"),
+            '3': (breeze_multi, "Breeze"),
+            '4': (fracture_multi, "Fracture"),
+            '5': (haven_multi, "Haven"),
+            '6': (icebox_multi, "Icebox"),
+            '7': (lotus_multi, "Lotus"),
+            '8': (pearl_multi, "Pearl"),
+            '9': (split_multi, "Split"),
+            '10': (sunset_multi, "Sunset"),
+            '11': (abyss_multi, "Abyss")
+        }[choice]
         break
 
-print('\nSELECTED AGENT:', agent, "\nSELECTED MAP:", map_multi)
+print('\nSELECTED AGENT:', orbit_agent, "\nSELECTED MAP:", map_multi)
 
 # tìm góc a tương ứng với vị trí chuột
 def calculate_angle(y):
@@ -160,7 +177,7 @@ def create_gui():
         root.configure(bg="green" if tracking else "red")
         label.configure(bg="green" if tracking else "red")
         """Cập nhật tọa độ trên giao diện."""
-        label.configure(text=f"X: {current_x} | Y: {current_y} | a: {round(angle_deg)} | d: {distance:.3f}")
+        label.configure(text=f"map: {map_name} | a: {round(angle_deg)} | d: {distance:.3f}")
         root.after(100, update_gui)  # Cập nhật mỗi 100ms
 
     update_gui()  # Bắt đầu vòng lặp cập nhật
@@ -223,7 +240,7 @@ def conversion_distance():
     pyautogui.FAILSAFE = False
     global current_y, distance
     while True:
-        distance = find_distance(angle_deg, agent) * map_multi
+        distance = find_distance_smooth(angle_deg, orbit_agent) * map_multi
         time.sleep(0.01)
 
 # khi nhấn mủi tên lên thì tăng map_multiplier lên 0.001 nếu nhấn mũi tên xuống thì giảm map_multiplier đi 0.001 in kết quả
