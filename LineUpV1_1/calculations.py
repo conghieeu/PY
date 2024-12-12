@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import CubicSpline
 
-# kết quả kiểm thử
+# kết quả kiểm thử của viper chiêu ném smoke
 data = {
     "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT": {
         # kết quả đo được từ game (góc tương ứng với từng khoang cách đo được)
@@ -52,6 +52,73 @@ data = {
     },
 }
 
+# với đầu vào điểm A (x1,y1) và B (x2,y2) tính hệ số của đường thẳng AB
+def calculate_line_coefficients(x1, y1, x2, y2):
+    """
+    Tính hệ số của đường thẳng AB.
+    
+    Args:
+        x1, y1 (float): Tọa độ điểm A.
+        x2, y2 (float): Tọa độ điểm B.
+    
+    Returns:
+        float, float, float: Hệ số a, b, c của phương trình đường thẳng ax + by + c = 0.
+    """
+    a = y2 - y1
+    b = x1 - x2
+    c = x2 * y1 - x1 * y2
+    return a, b, c
+
+
+def find_y_for_x(x, a, b, c):
+    """
+    Tìm giá trị y tương ứng với x trên đường thẳng ax + by + c = 0.
+    
+    Args:
+        x (float): Giá trị x.
+        a, b, c (float): Hệ số của phương trình đường thẳng.
+    
+    Returns:
+        float: Giá trị y tương ứng với x.
+    """
+    if b == 0:
+        raise ValueError("Phương trình đường thẳng không hợp lệ.")
+    return (-a * x - c) / b
+
+
+# viết hàm tìm 2 số tương ứng đúng thứ tự tăng dần trong mảng a và d
+def find_two_numbers_in_arrays(a, d, angle):
+    """
+    Tìm 2 số trong mảng a và d sao cho thứ tự tăng dần.
+    
+    Args:
+        a (list): Mảng a.
+        d (list): Mảng d.
+        n (int): Số cần tìm 2 số giữa.
+    
+    Returns:
+        tuple: 2 số giữa.
+    """
+    for i in range(len(a) - 1):
+        if a[i] <= angle <= a[i + 1]:
+            return a[i], d[i], a[i + 1], d[i + 1]
+    
+    return find_two_numbers_in_arrays(a, d, -90)
+
+
+def find_distance(angle, nameData = "VIPER_BRIMSTONE_STAGE_ORBIT"):
+    """
+    Tìm 2 số trong mảng a và d sao cho thứ tự tăng dần.
+    
+    Returns:
+        tuple: 2 số giữa.
+    """
+    a_array = data[nameData]["a_array"]
+    d_array = data[nameData]["d_array"]
+    x1, y1, x2, y2 = find_two_numbers_in_arrays(a_array, d_array, angle)
+    d = find_y_for_x(angle, *calculate_line_coefficients(x1, y1, x2, y2))
+    return d
+
 # print(find_distance(40))
 
 def find_distance_smooth(angle, nameData = "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT", Origin = "Orbit_1"):
@@ -75,7 +142,23 @@ def find_distance_smooth(angle, nameData = "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_OR
 
     return cs(angle)
 
-# print(find_distance_smooth(40))
+print(find_distance_smooth(40))
+
+
+# Vẽ đồ thị
+def plot_graph(str_name_orbit):
+    angles = data[str_name_orbit]["a_array"]
+    distances = data[str_name_orbit]["d_array"]
+    plt.figure(figsize=(10, 6))
+    plt.plot(angles, distances, 'o-', label="Dữ liệu thực nghiệm")
+    plt.xlabel("Góc (độ)")
+    plt.ylabel("Khoảng cách (m)")
+    plt.title("So sánh dữ liệu thực nghiệm và dự đoán")
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+# plot_graph("KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT")
 
 def plot_grapth_smooth(nameData = "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT", Origin = "Orbit_1"):
     if nameData == "SOVA_ORBIT":
@@ -111,6 +194,4 @@ def plot_grapth_smooth(nameData = "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT", Ori
     plt.grid()
     plt.show()
 
-
-if __name__ == "__main__":
-    plot_grapth_smooth("KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT")
+# plot_grapth_smooth("SOVA_ORBIT", "Orbit_2")

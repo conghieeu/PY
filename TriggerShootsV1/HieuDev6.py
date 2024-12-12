@@ -22,9 +22,9 @@ key_shoot_while_move = "y"
 is_stop = False
 current_mode = Mode.BanScope
 key_change_mode = "t"
-key_pause = "`"
+key_pause = "u"
 key_exit = "k"
-pressKeyShot = "`"
+pressKeyShot = "l"
 shoot_speed = 0.1
 
 
@@ -42,8 +42,38 @@ def on_mouse_click(x, y, button, pressed):
 mouse_listener = MouseListener(on_click=on_mouse_click)
 mouse_listener.start()
 
+def get_color_limits_red(color_to_detect):
+    """
+    Tính giới hạn dưới và trên trong không gian HSV cho một màu BGR đầu vào.
+    Nếu màu là đỏ, trả về hai khoảng do Hue của đỏ nằm ở hai biên trong HSV.
 
-def get_limits(color):
+    Args:
+        color_to_detect (list or np.ndarray): Màu cần phát hiện ở dạng BGR [B, G, R].
+
+    Returns:
+        tuple: Giới hạn dưới và trên trong HSV. Với màu đỏ, trả về hai cặp giới hạn.
+    """
+    # Chuyển đổi màu BGR sang HSV
+    color = np.uint8([[color_to_detect]])
+    hsv_color = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
+
+    hue = hsv_color[0][0][0]  # Lấy giá trị Hue
+
+    if hue < 10:  # Xử lý đặc biệt cho màu đỏ
+        lower1 = np.array([0, 100, 100], dtype=np.uint8)
+        upper1 = np.array([hue + 10, 255, 255], dtype=np.uint8)
+
+        lower2 = np.array([170, 100, 100], dtype=np.uint8)
+        upper2 = np.array([180, 255, 255], dtype=np.uint8)
+
+        return (lower1, upper1), (lower2, upper2)
+    else:  # Màu bình thường
+        lower = np.array([hue - 10, 100, 100], dtype=np.uint8)
+        upper = np.array([hue + 10, 255, 255], dtype=np.uint8)
+        return lower, upper
+
+
+def get_color_limits(color):
     c = np.uint8([[color]])
     hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
 
@@ -60,21 +90,35 @@ def is_purple_present(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     purple = [201, 47, 204]
-    lower_purple, upper_purple = get_limits(purple)
+    lower_purple, upper_purple = get_color_limits(purple)
     mask = cv2.inRange(hsv, lower_purple, upper_purple)
+
+    return cv2.countNonZero(mask) > 0
+
+def is_red_present(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    red = [0, 0, 255] 
+    limits = get_color_limits_red(red)
+    lower_red_0, upper_red_0 = limits[0]
+    lower_red_1, upper_red_1 = limits[1]
+
+    mask0 = cv2.inRange(hsv, lower_red_0, upper_red_0)
+    mask1 = cv2.inRange(hsv, lower_red_1, upper_red_1)
+    mask = cv2.bitwise_or(mask0, mask1)
 
     return cv2.countNonZero(mask) > 0
 
 
 def shoot():
     global shoot_while_move
-
+    
     if shoot_while_move or not shoot_while_move and not is_press_key_move():
         pyautogui.press(pressKeyShot)
-        time.sleep(0.005)
-        pyautogui.press(pressKeyShot)
-        time.sleep(0.005)
-        pyautogui.press(pressKeyShot)
+        # time.sleep(0.005)
+        # pyautogui.press(pressKeyShot)
+        # time.sleep(0.005)
+        # pyautogui.press(pressKeyShot)
 
 
 def create_gui():
@@ -84,18 +128,17 @@ def create_gui():
     global shoot_while_move
 
     root = tk.Tk()
-    root.geometry("30x20+930+850")
+    root.geometry("30x20+950+850")
     root.overrideredirect(True)  # Loại bỏ thanh tiêu đề và các nút
     root.attributes("-topmost", True)  # Luôn nằm trên cùng
-    root.attributes(
-        "-alpha", 0.4
-    )  # Giảm độ trong suốt (0.0: hoàn toàn trong suốt, 1.0: hoàn toàn mờ đục)
+    root.attributes("-alpha", 0.8)  # Giảm độ trong suốt (0.0: hoàn toàn trong suốt, 1.0: hoàn toàn mờ đục)
+    
 
     # Tạo nhãn để hiển thị số 1
     label = tk.Label(
-        root,
+        root, 
         text="0|0|F",
-        font=("Arial", 13),
+        font=("Arial", 13, "bold"),
         fg="white",
         bg="green",
     )
@@ -108,10 +151,12 @@ def create_gui():
         )
         if is_stop:
             root.configure(bg="red")
+            root.attributes("-transparentcolor", "red")  # Chọn màu nền trong suốt
             label.configure(bg="red", text=current_mode_str)
         else:
             root.configure(bg="green")
-            label.configure(bg="green", text=current_mode_str)
+            root.attributes("-transparentcolor", "green")  # Chọn màu nền trong suốt
+            label.configure(bg="green", text=current_mode_str), 
         root.after(
             100, update_gui
         )  # Kiểm tra thường xuyên hơn để nhạy hơn với thay đổi

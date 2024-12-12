@@ -6,7 +6,7 @@ import tkinter as tk
 from pynput import keyboard
 import ctypes
 import winsound
-from calculations import find_distance_smooth
+from calculations import find_distance, find_distance_smooth
 
 # key
 key_toggle = "`"  # Phím để bật/tắt theo dõi chuột
@@ -36,11 +36,8 @@ sunset_multi = 1.121 # 1.121
 abyss_multi = 1.16 # 1.16
 
 # map name
-map_multi = 1.023
-map_name = "Ascent"
-skill_name = "Killjoy_Q"
-orbit_agent = "KILLJOY_VIPER_DEADLOCK_GECKO_KAYO_ORBIT"
-orbit_sova = "Orbit_1"
+map_multi = 1.0
+map_name = "none"
 
 # Các biến lưu trữ trạng thái
 tracking = False
@@ -50,6 +47,9 @@ current_y = 0
 angle_deg = 0
 distance = 0
 
+# agent
+orbit_agent = "None"
+orbit_sova = "None"
 
 def set_orbit_agent():
     global orbit_agent
@@ -60,7 +60,7 @@ def set_orbit_agent():
     3. CYPHER_ORBIT
     4. KAYO_KNIFE_ORBIT
     5. SOVA_ORBIT
-                       
+
     ''').strip()
         if choice in ('1', '2', '3', '4', '5'):
             orbit_agent = {
@@ -78,11 +78,10 @@ def set_orbit_sova():
     global orbit_sova, orbit_agent
     while orbit_agent == 'SOVA_ORBIT':
         choice = input('''Select sova orbit:
-    1. Orbit_1
-    2. Orbit_2
-    3. Orbit_3
-    4. Orbit_4
-                        
+1. Orbit_1
+2. Orbit_2
+3. Orbit_3
+4. Orbit_4
     ''').strip()
         if choice in ('1', '2', '3', '4'):
             orbit_sova = {
@@ -97,7 +96,8 @@ def set_orbit_sova():
 def set_map():
     global map_multi, map_name
     while True:
-        choice = input('''Select map:
+        choice = input('''
+    Select map:
     1. Ascent
     2. Bind
     3. Breeze
@@ -109,7 +109,6 @@ def set_map():
     9. Split
     10. Sunset
     11. Abyss
-                       
     ''').strip()
         if choice in (str(x) for x in range(1,12)):
             map_multi, map_name = {
@@ -130,6 +129,8 @@ def set_map():
 set_orbit_agent()
 set_orbit_sova()
 set_map()
+
+print('\nSELECTED AGENT:', orbit_agent, "\nSELECTED MAP:", map_name, "\nSELECTED ORBIT SOVA:", orbit_sova)
 
 # tìm góc a tương ứng với vị trí chuột
 def calculate_angle(y):
@@ -184,32 +185,31 @@ def create_gui():
 
     # Tạo cửa sổ chính
     root = tk.Tk()
-    root.geometry("210x50+0+500")  # Kích thước và vị trí trên màn hình
+    root.geometry("200x30+0+500")  # Kích thước và vị trí trên màn hình
     root.overrideredirect(True)  # Loại bỏ thanh tiêu đề và các nút
     root.attributes("-topmost", True)  # Luôn nằm trên cùng
     root.attributes("-alpha", 0.4)  # Độ trong suốt
     root.configure(bg="green")
+    # không cho chuột click vào cửa sổ
     root.attributes("-disabled", True)
+    # CHUỘT KHÔNG THỂ CHẠM VÀO CỬA SỔ
     root.attributes("-transparentcolor", "red")  # Làm cho cửa sổ trong suốt và không thể tương tác
 
     # Tạo nhãn để hiển thị tọa độ
     label = tk.Label(
         root,
-        text="LineUpV1",
+        text="X: 0 | Y: 0",
         font=("Arial", 9),
         fg="white",
         bg="green",
-        anchor="w",  # Căn trái
-        justify="left"  # Căn trái
     )
-    label.place(relx=0, rely=0.5, anchor="w")
-    
+    label.place(relx=0.5, rely=0.5, anchor="center")  # Căn giữa nhãn trong cửa sổ
 
     def update_gui():
         root.configure(bg="green" if tracking else "red")
         label.configure(bg="green" if tracking else "red")
         """Cập nhật tọa độ trên giao diện."""
-        label.configure(text=f" map: {map_name} | a: {round(angle_deg)} | d: {distance:.3f} \n orbit: {orbit_agent} \n orbit sova: {orbit_sova}")
+        label.configure(text=f"map: {map_name} | a: {round(angle_deg)} | d: {distance:.3f}")
         root.after(100, update_gui)  # Cập nhật mỗi 100ms
 
     update_gui()  # Bắt đầu vòng lặp cập nhật
@@ -284,31 +284,33 @@ def map_multiplier():
     return (map_multi * minimap_size * minimap_zoom) / (minimap_size_default * minimap_zoom_default)
 
 
+# khi nhấn mủi tên lên thì tăng map_multiplier lên 0.001 nếu nhấn mũi tên xuống thì giảm map_multiplier đi 0.001 in kết quả
 def on_press(key):
     global map_multi
     try:
+        # print("Key pressed:", key.char)
         if key.char == key_toggle:
             toggle_tracking()
             winsound.Beep(500, 100)
-        elif key.char == key_chosen_map:
-            select_map_thread = threading.Thread(target=set_map, daemon=True)
-            select_map_thread.start()
-            pyautogui.press('backspace')  # xoá lùi 1 kí tự đang nhập
         elif key.char == key_chosen_agent:
-            select_agent_thread = threading.Thread(target=set_orbit_agent, daemon=True)
-            select_agent_thread.start()
-            pyautogui.press('backspace')
+            set_orbit_agent()
+            set_orbit_sova()
         elif key.char == key_chosen_orbit_sova:
-            select_orbit_sova_thread = threading.Thread(target=set_orbit_sova, daemon=True)
-            select_orbit_sova_thread.start()
-            pyautogui.press('backspace')
+            set_orbit_sova()
+        # elif key == keyboard.Key.up:
+        #     map_multi += 0.001
+        #     print('Map multiplier:', map_multi)
+        # elif key == keyboard.Key.down:
+        #     map_multi -= 0.001
+        #     print('Map multiplier:', map_multi)
     except AttributeError:
         pass
 
-
 def main():
-    # Tạo luồng hiển thị giao diện
-    gui_hien_thi_diem_roi_thread = threading.Thread(target=gui_hien_thi_diem_roi, daemon=True)
+        # Tạo luồng hiển thị giao diện
+    gui_hien_thi_diem_roi_thread = threading.Thread(
+        target=gui_hien_thi_diem_roi, daemon=True
+    )
     gui_hien_thi_diem_roi_thread.start()
 
     # Tạo luồng hiển thị giao diện
@@ -332,7 +334,6 @@ def main():
             key_listener.join()
     except KeyboardInterrupt:
         print("\nKết thúc chương trình.")
-
 
 if __name__ == "__main__":
     main()
