@@ -1,0 +1,13 @@
+Hướng dẫn cài đặt
+
+Cài ngôn ngữ Python
+1. Tải python về máy -> https://www.python.org/downloads/
+2. Nhấn file .exe để cài trong lúc cái nhớ nhấn vào Add Python to PATH
+
+Hướng dẫn cài thứ còn lại
+1. Nhấn vào CaiFileGet-Pip.bat đợi cài xong pip
+2. Nhấn vào CaiThuVienConLai.bat để cài thứ còn lại
+
+Xong giờ bạn có thể chạy file RunLineUp.bat để chạy code
+
+Nếu gặp rắc rối trong quá trình cài liên hệ mình qua discord "https://discord.gg/MbzaKQSd8S" để mình khắc phục

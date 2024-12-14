@@ -12,7 +12,6 @@ from calculations import find_distance
 key_toggle = "`"  # Phím để bật/tắt theo dõi chuột
 key_chosen_map = "5"  # Phím để chọn map
 key_chosen_agent = "6"  # Phím để chọn agent
-key_chosen_orbit_sova = "7"  # Phím để chọn orbit sova
 
 # dpi and sensitivity
 val_sensitivity = 0.15
@@ -47,10 +46,11 @@ current_x = 0
 current_y = 0
 angle_deg = 0
 distance = 0
+is_chosen = False   
 
 
 def set_orbit_agent():
-    global orbit_agent
+    global orbit_agent, is_chosen
     while True:
         choice = input('''Select agent:
     1. killjoy_viper_deadlock_gecko_kayo_boom
@@ -72,11 +72,12 @@ def set_orbit_agent():
                 '6': 'sova_arrow3_kayo_knife',
                 '7': 'sova_arrow4'
             }[choice]
+            is_chosen = False
             break
 
 
 def set_map():
-    global map_multi, map_name
+    global map_multi, map_name, is_chosen
     while True:
         choice = input('''Select map:
     1. Ascent
@@ -106,10 +107,11 @@ def set_map():
                 '10': (sunset_multi, "Sunset"),
                 '11': (abyss_multi, "Abyss")
             }[choice]
+            is_chosen = False
             break
 
-set_orbit_agent()
 set_map()
+set_orbit_agent()
 
 # tìm góc a tương ứng với vị trí chuột
 def calculate_angle(y):
@@ -264,16 +266,18 @@ def map_multiplier():
 
 
 def on_press(key):
-    global map_multi
+    global map_multi, is_chosen
     try:
         if key.char == key_toggle:
             toggle_tracking()
             winsound.Beep(500, 100)
-        elif key.char == key_chosen_map:
+        elif key.char == key_chosen_map and is_chosen == False:
+            is_chosen = True
             select_map_thread = threading.Thread(target=set_map, daemon=True)
             select_map_thread.start()
             pyautogui.press('backspace')  # xoá lùi 1 kí tự đang nhập
-        elif key.char == key_chosen_agent:
+        elif key.char == key_chosen_agent and is_chosen == False:
+            is_chosen = True
             select_agent_thread = threading.Thread(target=set_orbit_agent, daemon=True)
             select_agent_thread.start()
             pyautogui.press('backspace')

@@ -1,0 +1,18 @@
+Trong file TinhQuyDao.py bạn có thể mở ra và chỉnh sửa thông số như sen chuột dpi kích cở map
+Có thể chỉnh cả phím tắt
+
+chỉnh tuỳ chọn đó ở dòng này của code
+# key
+key_toggle = "`"  # Phím để bật/tắt theo dõi chuột
+key_chosen_map = "5"  # Phím để chọn map
+key_chosen_agent = "6"  # Phím để chọn agent
+
+# dpi and sensitivity
+val_sensitivity = 0.15
+val_DPI = 1600
+
+# map values
+minimap_size = 1.2
+minimap_zoom = 0.65
+
+`
